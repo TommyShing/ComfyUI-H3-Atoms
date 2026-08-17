@@ -101,6 +101,7 @@ def build_responses_payload(
         "instructions": system_prompt,
         "input": [{"role": "user", "content": _responses_content(user_content)}],
         "max_output_tokens": profile.max_tokens,
+        "store": False,
     }
     if profile.reasoning_effort != "disabled":
         payload["reasoning"] = {"effort": profile.reasoning_effort}

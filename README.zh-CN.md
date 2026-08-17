@@ -56,6 +56,7 @@ $env:H3_API_KEY = "your-key"
 - 超时、JPEG 质量和视频抽帧数量
 - 按媒体类型开关发送
 - `direct_video` 和 `send_ref_audio` 只在 Gemini Native Files API 路径中有意义
+- 请求是单次 stateless 调用；不使用 conversation memory、`store` 或 `previous_response_id`
 
 ## 当前限制
 

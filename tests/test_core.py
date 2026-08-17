@@ -119,6 +119,7 @@ class APIClientTests(unittest.TestCase):
         self.assertEqual(responses_url(self.profile.base_url), "https://example.com/v1/responses")
         payload = build_responses_payload(self.profile, "sys", [{"type": "text", "text": "hello"}])
         self.assertEqual(payload["max_output_tokens"], 8192)
+        self.assertFalse(payload["store"])
         self.assertEqual(payload["input"][0]["content"][0]["type"], "input_text")
         parsed = parse_responses_response({"status": "incomplete", "output_text": "half", "usage": {"x": 1}})
         self.assertTrue(parsed.truncated)

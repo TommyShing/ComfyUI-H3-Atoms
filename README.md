@@ -56,6 +56,7 @@ Supported fields:
 - timeout, JPEG quality, and sampled video frame count
 - per-category media sending flags
 - `direct_video` and `send_ref_audio` are only meaningful for the Gemini Native Files API path
+- Requests are single-pass and stateless; no conversation memory, `store`, or `previous_response_id` is used
 
 ## Current limitations
 
