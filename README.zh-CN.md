@@ -20,11 +20,18 @@
 ## 工作流
 
 ```text
-Reference Pack ──┐
-Settings Pack ───┤
-Rules Loader ────┤--> H3 LLM Prompt Process --> H3 Unified Encode --> positive + latent
-User Prompt ─────┤              |
-API Profile ─────┘              +--> final_prompt / output_msg
+Reference Pack ─────────┐
+Settings Pack ──────────┤
+Rules Loader ───────────┤
+User Prompt ────────────┤--> H3 LLM Prompt Process --> final_prompt
+API Profile ────────────┘              |
+                                       v
+final_prompt ──────────────────────────┐
+Reference Pack ───────────────────────┤
+Settings Pack ────────────────────────┤--> H3 Unified Encode --> positive + latent
+clip ─────────────────────────────────┤
+vae ──────────────────────────────────┤
+audio_vae (Ref2VA) ───────────────────┘
 ```
 
 推荐连接方式：
