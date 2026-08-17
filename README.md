@@ -21,7 +21,7 @@ This package targets the ComfyUI new node API (`comfy_api.latest`) and the insta
 
 ```text
 Reference Pack ────┬────────────────────────────────────────────┐
-Settings Pack ─────┤                                            │
+Settings Pack ─────┼────────────────────────────────────────────┤
 Rules Loader ──────┤                                            │
 User Prompt ───────┼─> H3 LLM Prompt Process ──> final_prompt ──┼─> H3 Unified Encode ──> positive + latent
 API Profile ───────┘                                            │
@@ -49,19 +49,20 @@ $env:H3_API_KEY = "your-key"
 
 Supported fields:
 
+- `api_format`: `completions` (Chat Completions), `responses` (Responses API), or `gemini_native` (planned Google-native adapter)
 - `base_url`, `model`
-- `max_completion_tokens` or `max_tokens`
+- `max_completion_tokens`, `max_tokens`, or `max_output_tokens`
 - optional `reasoning_effort`
 - timeout, JPEG quality, and sampled video frame count
 - per-category media sending flags
-- `direct_video` flag, which is intentionally rejected by the OpenAI-compatible adapter when reference videos are present
+- `direct_video` and `send_ref_audio` are only meaningful for the Gemini Native Files API path
 
 ## Current limitations
 
-- Images and sampled video frames are sent as JPEG data URLs.
-- Raw video and audio upload are not implemented for generic OpenAI-compatible endpoints.
-- `send_ref_audio=true` and `direct_video=true` produce clear errors rather than silently dropping media.
-- Gemini Native and Google Files API are not implemented here.
+- `completions` and `responses` send images and sampled video frames as JPEG data URLs.
+- Raw video and audio upload are not implemented for `completions` or `responses`.
+- `send_ref_audio=true` and `direct_video=true` require `api_format=gemini_native` and the Gemini Files API adapter.
+- The Gemini Native adapter is registered as an API format but is not fully implemented yet.
 
 ## Requirements
 

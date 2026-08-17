@@ -8,7 +8,8 @@ from pathlib import Path
 from typing import Any
 
 
-TOKEN_PARAMETERS = ("max_completion_tokens", "max_tokens")
+API_FORMATS = ("completions", "responses", "gemini_native")
+TOKEN_PARAMETERS = ("max_completion_tokens", "max_tokens", "max_output_tokens")
 REASONING_EFFORTS = ("disabled", "none", "minimal", "low", "medium", "high")
 
 
@@ -18,6 +19,7 @@ class APIProfile:
     base_url: str
     model: str
     api_key_env: str = ""
+    api_format: str = "completions"
     token_parameter: str = "max_completion_tokens"
     max_tokens: int = 8192
     reasoning_effort: str = "disabled"
@@ -39,6 +41,8 @@ class APIProfile:
     def validate(self) -> None:
         if not self.name.strip():
             raise ValueError("profile name cannot be empty")
+        if self.api_format not in API_FORMATS:
+            raise ValueError(f"Unsupported API format: {self.api_format}")
         if self.token_parameter not in TOKEN_PARAMETERS:
             raise ValueError(f"Unsupported token parameter: {self.token_parameter}")
         if self.reasoning_effort not in REASONING_EFFORTS:

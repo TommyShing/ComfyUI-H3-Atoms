@@ -8,8 +8,8 @@ from typing import Any
 
 from comfy_api.latest import ComfyExtension, io
 
-from .api_client import request_chat_completion
-from .profiles import APIProfile, REASONING_EFFORTS, TOKEN_PARAMETERS
+from .api_client import request_chat_completion, request_responses_completion
+from .profiles import APIProfile, API_FORMATS, REASONING_EFFORTS, TOKEN_PARAMETERS
 from .prompt_builder import build_system_prompt, build_user_content
 from .rules import RuleBundle
 from .settings import (
@@ -330,6 +330,12 @@ class H3APIProfile(io.ComfyNode):
                 io.String.Input("model", default="glm-4.5v"),
                 io.String.Input("api_key_env", default="H3_API_KEY"),
                 io.Combo.Input(
+                    "api_format",
+                    options=list(API_FORMATS),
+                    default="completions",
+                    tooltip="completions uses chat/completions; responses uses the Responses API; gemini_native is the planned Google-native adapter.",
+                ),
+                io.Combo.Input(
                     "token_parameter",
                     options=list(TOKEN_PARAMETERS),
                     default="max_completion_tokens",
@@ -359,6 +365,7 @@ class H3APIProfile(io.ComfyNode):
         base_url: str,
         model: str,
         api_key_env: str,
+        api_format: str,
         token_parameter: str,
         max_tokens: int,
         reasoning_effort: str,
@@ -376,6 +383,7 @@ class H3APIProfile(io.ComfyNode):
             base_url=base_url,
             model=model,
             api_key_env=api_key_env,
+            api_format=api_format,
             token_parameter=token_parameter,
             max_tokens=max_tokens,
             reasoning_effort=reasoning_effort,
@@ -441,7 +449,12 @@ class H3LLMPromptProcess(io.ComfyNode):
             api_key = os.getenv(profile.api_key_env, "").strip() if profile.api_key_env else ""
             if not api_key:
                 raise ValueError(f"API key environment variable {profile.api_key_env!r} is not set")
-            result = request_chat_completion(profile, api_key, system_prompt, user_content)
+            if profile.api_format == "responses":
+                result = request_responses_completion(profile, api_key, system_prompt, user_content)
+            elif profile.api_format == "gemini_native":
+                raise ValueError("Gemini Native adapter is not implemented yet; use completions or responses")
+            else:
+                result = request_chat_completion(profile, api_key, system_prompt, user_content)
             if result.truncated:
                 return io.NodeOutput(
                     "",

@@ -34,6 +34,15 @@ def chat_completions_url(base_url: str) -> str:
     return value + "/chat/completions"
 
 
+def responses_url(base_url: str) -> str:
+    value = base_url.strip().rstrip("/")
+    if not value:
+        raise ValueError("API base URL cannot be empty")
+    if value.endswith("/responses"):
+        return value
+    return value + "/responses"
+
+
 def build_payload(
     profile: APIProfile,
     system_prompt: str,
@@ -59,6 +68,42 @@ def _default_transport(url: str, headers: dict[str, str], body: bytes, timeout: 
             return int(response.status), response.read()
     except urllib.error.HTTPError as exc:
         return int(exc.code), exc.read()
+
+
+def _responses_content(content: str | list[dict[str, Any]]) -> Any:
+    if isinstance(content, str):
+        return content
+    if not isinstance(content, list):
+        return content
+    parts: list[dict[str, Any]] = []
+    for item in content:
+        if isinstance(item, str):
+            parts.append({"type": "input_text", "text": item})
+        elif isinstance(item, dict) and item.get("type") == "text":
+            parts.append({"type": "input_text", "text": item["text"]})
+        elif isinstance(item, dict) and item.get("type") == "image_url":
+            image_url = item.get("image_url")
+            if isinstance(image_url, dict):
+                parts.append({"type": "input_image", "image_url": image_url.get("url")})
+        else:
+            parts.append(item)
+    return parts
+
+
+def build_responses_payload(
+    profile: APIProfile,
+    system_prompt: str,
+    user_content: str | list[dict[str, Any]],
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "model": profile.model,
+        "instructions": system_prompt,
+        "input": [{"role": "user", "content": _responses_content(user_content)}],
+        "max_output_tokens": profile.max_tokens,
+    }
+    if profile.reasoning_effort != "disabled":
+        payload["reasoning_effort"] = profile.reasoning_effort
+    return payload
 
 
 def _content_to_text(content: Any) -> str:
@@ -88,6 +133,59 @@ def parse_response(data: dict[str, Any]) -> CompletionResult:
         raise ValueError("Compatible response has no final message.content")
     usage = data.get("usage") if isinstance(data.get("usage"), dict) else {}
     return CompletionResult(content, choice.get("finish_reason"), usage, data)
+
+
+def parse_responses_response(data: dict[str, Any]) -> CompletionResult:
+    content = str(data.get("output_text") or "").strip()
+    if not content:
+        output = data.get("output")
+        if isinstance(output, list):
+            chunks: list[str] = []
+            for item in output:
+                if not isinstance(item, dict):
+                    continue
+                for part in item.get("content") or []:
+                    if isinstance(part, dict) and isinstance(part.get("text"), str):
+                        chunks.append(part["text"])
+            content = "".join(chunks).strip()
+    if not content:
+        raise ValueError("Responses API response has no output text")
+    usage = data.get("usage") if isinstance(data.get("usage"), dict) else {}
+    status = data.get("status")
+    finish_reason = "stop" if status == "completed" else status
+    return CompletionResult(content, finish_reason, usage, data)
+
+
+def request_responses_completion(
+    profile: APIProfile,
+    api_key: str,
+    system_prompt: str,
+    user_content: str | list[dict[str, Any]],
+    transport: Transport | None = None,
+) -> CompletionResult:
+    profile.validate()
+    if not profile.model.strip():
+        raise ValueError("API model cannot be empty")
+    payload = build_responses_payload(profile, system_prompt, user_content)
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    status, response_body = (transport or _default_transport)(
+        responses_url(profile.base_url), headers, body, profile.timeout_seconds
+    )
+    text = response_body.decode("utf-8", errors="replace")
+    if status < 200 or status >= 300:
+        raise RuntimeError(f"HTTP {status}: {text[:4000]}")
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Responses endpoint returned invalid JSON: {text[:1000]}") from exc
+    if not isinstance(data, dict):
+        raise ValueError("Responses endpoint returned a non-object JSON response")
+    return parse_responses_response(data)
 
 
 def request_chat_completion(

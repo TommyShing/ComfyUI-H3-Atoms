@@ -5,7 +5,16 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from h3_prompt_tools.api_client import build_payload, chat_completions_url, parse_response, request_chat_completion
+from h3_prompt_tools.api_client import (
+    build_payload,
+    build_responses_payload,
+    chat_completions_url,
+    parse_response,
+    parse_responses_response,
+    request_chat_completion,
+    request_responses_completion,
+    responses_url,
+)
 from h3_prompt_tools.media import parse_video_timestamps
 from h3_prompt_tools.profiles import APIProfile, ProfileStore
 from h3_prompt_tools.prompt_builder import build_system_prompt, build_user_content, build_user_text
@@ -100,6 +109,24 @@ class APIClientTests(unittest.TestCase):
     def test_parse_finish_reason(self):
         parsed = parse_response({"choices": [{"message": {"content": "ok"}, "finish_reason": "length"}]})
         self.assertTrue(parsed.truncated)
+
+    def test_responses_url_payload_and_parse(self):
+        self.assertEqual(responses_url(self.profile.base_url), "https://example.com/v1/responses")
+        payload = build_responses_payload(self.profile, "sys", [{"type": "text", "text": "hello"}])
+        self.assertEqual(payload["max_output_tokens"], 8192)
+        self.assertEqual(payload["input"][0]["content"][0]["type"], "input_text")
+        parsed = parse_responses_response({"status": "incomplete", "output_text": "half", "usage": {"x": 1}})
+        self.assertTrue(parsed.truncated)
+
+    def test_responses_transport_injection(self):
+        def transport(url, headers, body, timeout):
+            self.assertEqual(url, "https://example.com/v1/responses")
+            request = json.loads(body)
+            self.assertEqual(request["model"], "glm")
+            return 200, json.dumps({"status": "completed", "output_text": "final"}).encode()
+
+        result = request_responses_completion(self.profile, "key", "sys", "user", transport=transport)
+        self.assertEqual(result.content, "final")
 
     def test_transport_injection(self):
         def transport(url, headers, body, timeout):

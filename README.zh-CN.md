@@ -21,7 +21,7 @@
 
 ```text
 Reference Pack ────┬────────────────────────────────────────────┐
-Settings Pack ─────┤                                            │
+Settings Pack ─────┼────────────────────────────────────────────┤
 Rules Loader ──────┤                                            │
 User Prompt ───────┼─> H3 LLM Prompt Process ──> final_prompt ──┼─> H3 Unified Encode ──> positive + latent
 API Profile ───────┘                                            │
@@ -49,19 +49,20 @@ $env:H3_API_KEY = "your-key"
 
 支持：
 
+- `api_format`：`completions`（Chat Completions）、`responses`（Responses API）、`gemini_native`（规划中的 Google 原生 adapter）
 - `base_url`、`model`
-- `max_completion_tokens` 或 `max_tokens`
+- `max_completion_tokens`、`max_tokens`、`max_output_tokens`
 - 可选 `reasoning_effort`
 - 超时、JPEG 质量和视频抽帧数量
 - 按媒体类型开关发送
-- `direct_video` 标记；当前 OpenAI-compatible 路径遇到参考视频时会明确报错
+- `direct_video` 和 `send_ref_audio` 只在 Gemini Native Files API 路径中有意义
 
 ## 当前限制
 
-- 图片和视频抽样帧以 JPEG data URL 发送。
-- 通用 OpenAI-compatible endpoint 暂不支持原始视频/音频上传。
-- `send_ref_audio=true` 和 `direct_video=true` 会明确报错，不会静默丢素材。
-- 暂不包含 Gemini Native 和 Google Files API。
+- `completions` 和 `responses` 只把图片和视频抽样帧以 JPEG data URL 发送。
+- `completions` 和 `responses` 暂不支持原始视频/音频上传。
+- `send_ref_audio=true` 和 `direct_video=true` 需要 `api_format=gemini_native` 和 Gemini Files API adapter。
+- Gemini Native adapter 已作为 API format 登记，但 Files API 上传路径尚未完整实现。
 
 ## Requirements
 

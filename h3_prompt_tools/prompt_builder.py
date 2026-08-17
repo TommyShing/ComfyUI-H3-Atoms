@@ -151,11 +151,11 @@ def build_user_content(
     text = build_user_text(user_prompt, pack, settings)
     parts: list[dict[str, Any]] = [{"type": "text", "text": text}]
 
-    if profile.direct_video and _present(pack.get("ref_videos")):
-        raise ValueError("direct_video is not supported by the OpenAI-compatible adapter; set direct_video=false")
+    if profile.api_format != "gemini_native" and profile.direct_video and _present(pack.get("ref_videos")):
+        raise ValueError("direct_video requires api_format=gemini_native and the Gemini Files API adapter")
 
-    if profile.send_ref_audio and any(item["kind"] == "audio" for item in iter_reference_items(pack)):
-        raise ValueError("send_ref_audio is not supported by the OpenAI-compatible adapter; set send_ref_audio=false")
+    if profile.api_format != "gemini_native" and profile.send_ref_audio and any(item["kind"] == "audio" for item in iter_reference_items(pack)):
+        raise ValueError("send_ref_audio requires api_format=gemini_native and the Gemini Files API adapter")
 
     if mode == "Ref2VA":
         items = iter_reference_items(pack)
