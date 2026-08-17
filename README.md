@@ -1,5 +1,7 @@
 # ComfyUI H3 Atoms
 
+[中文版](README.zh-CN.md)
+
 Composable MiniMax H3 prompt, media, API, and conditioning nodes for ComfyUI.
 
 This package targets the ComfyUI new node API (`comfy_api.latest`) and the installed official `comfy_extras.nodes_minimax_h3` module.
