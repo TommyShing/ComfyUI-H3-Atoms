@@ -1,0 +1,35 @@
+{
+  "bundle": "minimax-h3-prompt-rules",
+  "bundle_version": "0.1.0",
+  "adapted_at": "2026-08-16",
+  "official_source": {
+    "repository": "MiniMax-AI/MiniMax-H3",
+    "commit": "d21241f0a4b3acbb34c97dae47fa417b7065e438"
+  },
+  "integration_reference": {
+    "repository": "nkxx188/ComfyUI-MiniMaxH3-Easy",
+    "commit": "404e6e8c3af4d013c275f773da09e181765cdc14"
+  },
+  "composition": {
+    "always": ["execution-contract.md", "core.md"],
+    "mode": {
+      "T2VA": "modes/base-en.txt",
+      "I2VA": "modes/base-en.txt",
+      "FL2VA": "modes/base-en.txt",
+      "L2VA": "modes/base-en.txt",
+      "Ref2VA": "modes/ref-en.txt"
+    },
+    "optional_style_contract": "style-contract.md"
+  },
+  "styles": {
+    "None": null,
+    "3D Animation Short": "styles/3d-animation-short.md",
+    "Brand Promo": "styles/brand-promo.md",
+    "Co-op Game Intro": "styles/co-op-game-intro.md",
+    "Handdrawn Live": "styles/handdrawn-live.md",
+    "Minimalist Product Ad": "styles/minimalist-product-ad.md",
+    "Music Video Subtitle": "styles/music-video-subtitle.md",
+    "Paper Collage Explainer": "styles/paper-collage-explainer.md",
+    "Papercraft Stop Motion": "styles/papercraft-stop-motion.md"
+  }
+}

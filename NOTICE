@@ -1,0 +1,12 @@
+ComfyUI H3 Atoms
+Copyright (c) 2026 TommyShing
+
+This project is licensed under the GNU Affero General Public License v3.0 or later.
+
+Attribution and upstream influences:
+
+- nkxx188/ComfyUI-MiniMaxH3-Easy, MIT License
+- colorAi/ComfyUI-Minimax-H3-Prompt-Engineer, GNU Affero General Public License v3.0 or later
+- MiniMax-AI/MiniMax-H3 official prompt-writing guides; upstream terms continue to apply to those guide texts
+
+This implementation was written for this repository, but it reuses design patterns, interface ideas, and integration boundaries from the projects listed above. No proprietary media or model files are bundled.
