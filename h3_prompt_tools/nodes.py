@@ -8,7 +8,7 @@ from typing import Any
 
 from comfy_api.latest import ComfyExtension, io
 
-from .api_client import request_chat_completion, request_responses_completion
+from .api_client import request_chat_completion, request_gemini_native, request_responses_completion
 from .profiles import APIProfile, API_FORMATS, REASONING_EFFORTS, TOKEN_PARAMETERS
 from .prompt_builder import build_system_prompt, build_user_content
 from .rules import RuleBundle
@@ -333,7 +333,7 @@ class H3APIProfile(io.ComfyNode):
                     "api_format",
                     options=list(API_FORMATS),
                     default="completions",
-                    tooltip="completions uses chat/completions; responses uses the Responses API; gemini_native is the planned Google-native adapter.",
+                    tooltip="completions uses chat/completions; responses uses the Responses API; gemini_native supports text/inline images, with Files API audio/video pending.",
                 ),
                 io.Combo.Input(
                     "token_parameter",
@@ -452,7 +452,9 @@ class H3LLMPromptProcess(io.ComfyNode):
             if profile.api_format == "responses":
                 result = request_responses_completion(profile, api_key, system_prompt, user_content)
             elif profile.api_format == "gemini_native":
-                raise ValueError("Gemini Native adapter is not implemented yet; use completions or responses")
+                if profile.send_ref_audio or profile.direct_video:
+                    raise ValueError("Gemini Native audio/video via Files API is not implemented yet; use text/images inline")
+                result = request_gemini_native(profile, api_key, system_prompt, user_content)
             else:
                 result = request_chat_completion(profile, api_key, system_prompt, user_content)
             if result.truncated:

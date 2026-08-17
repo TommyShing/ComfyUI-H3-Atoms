@@ -6,12 +6,16 @@ import unittest
 from pathlib import Path
 
 from h3_prompt_tools.api_client import (
+    build_gemini_payload,
     build_payload,
     build_responses_payload,
     chat_completions_url,
+    gemini_generate_content_url,
+    parse_gemini_response,
     parse_response,
     parse_responses_response,
     request_chat_completion,
+    request_gemini_native,
     request_responses_completion,
     responses_url,
 )
@@ -126,6 +130,48 @@ class APIClientTests(unittest.TestCase):
             return 200, json.dumps({"status": "completed", "output_text": "final"}).encode()
 
         result = request_responses_completion(self.profile, "key", "sys", "user", transport=transport)
+        self.assertEqual(result.content, "final")
+
+    def test_responses_reasoning_is_nested(self):
+        profile = APIProfile(
+            name="test",
+            base_url="https://example.com/v1",
+            model="glm",
+            reasoning_effort="medium",
+        )
+        payload = build_responses_payload(profile, "sys", "user")
+        self.assertEqual(payload["reasoning"], {"effort": "medium"})
+
+    def test_gemini_payload_url_and_parse(self):
+        self.assertEqual(
+            gemini_generate_content_url("https://generativelanguage.googleapis.com/v1beta", "gemini-2.0-flash"),
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        )
+        payload = build_gemini_payload(
+            self.profile,
+            "sys",
+            [
+                {"type": "text", "text": "hello"},
+                {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,AAAA"}},
+            ],
+        )
+        self.assertEqual(payload["systemInstruction"]["parts"][0]["text"], "sys")
+        self.assertEqual(payload["contents"][0]["parts"][1]["inlineData"]["data"], "AAAA")
+        parsed = parse_gemini_response(
+            {
+                "candidates": [{"finishReason": "MAX_TOKENS", "content": {"parts": [{"text": "half"}]}}],
+                "usageMetadata": {"promptTokenCount": 1},
+            }
+        )
+        self.assertTrue(parsed.truncated)
+
+    def test_gemini_transport_injection(self):
+        def transport(url, headers, body, timeout):
+            self.assertEqual(url, "https://example.com/v1/models/glm:generateContent")
+            self.assertEqual(headers["x-goog-api-key"], "key")
+            return 200, json.dumps({"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "final"}]}}]}).encode()
+
+        result = request_gemini_native(self.profile, "key", "sys", "user", transport=transport)
         self.assertEqual(result.content, "final")
 
     def test_transport_injection(self):

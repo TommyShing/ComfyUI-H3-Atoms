@@ -57,7 +57,7 @@ def build_payload(
         profile.token_parameter: profile.max_tokens,
     }
     if profile.reasoning_effort != "disabled":
-        payload["reasoning_effort"] = profile.reasoning_effort
+        payload["reasoning"] = {"effort": profile.reasoning_effort}
     return payload
 
 
@@ -102,7 +102,7 @@ def build_responses_payload(
         "max_output_tokens": profile.max_tokens,
     }
     if profile.reasoning_effort != "disabled":
-        payload["reasoning_effort"] = profile.reasoning_effort
+        payload["reasoning"] = {"effort": profile.reasoning_effort}
     return payload
 
 
@@ -136,23 +136,30 @@ def parse_response(data: dict[str, Any]) -> CompletionResult:
 
 
 def parse_responses_response(data: dict[str, Any]) -> CompletionResult:
-    content = str(data.get("output_text") or "").strip()
+    chunks: list[str] = []
+    output = data.get("output")
+    if isinstance(output, list):
+        for item in output:
+            if not isinstance(item, dict) or item.get("type") != "message":
+                continue
+            for part in item.get("content") or []:
+                if isinstance(part, dict) and part.get("type") == "output_text" and isinstance(part.get("text"), str):
+                    chunks.append(part["text"])
+    content = "".join(chunks).strip()
     if not content:
-        output = data.get("output")
-        if isinstance(output, list):
-            chunks: list[str] = []
-            for item in output:
-                if not isinstance(item, dict):
-                    continue
-                for part in item.get("content") or []:
-                    if isinstance(part, dict) and isinstance(part.get("text"), str):
-                        chunks.append(part["text"])
-            content = "".join(chunks).strip()
+        content = str(data.get("output_text") or "").strip()
     if not content:
         raise ValueError("Responses API response has no output text")
     usage = data.get("usage") if isinstance(data.get("usage"), dict) else {}
     status = data.get("status")
-    finish_reason = "stop" if status == "completed" else status
+    if status == "completed":
+        finish_reason = "stop"
+    elif status == "incomplete":
+        details = data.get("incomplete_details") or {}
+        finish_reason = details.get("reason") if isinstance(details, dict) else None
+        finish_reason = finish_reason or "incomplete"
+    else:
+        finish_reason = status
     return CompletionResult(content, finish_reason, usage, data)
 
 
@@ -186,6 +193,120 @@ def request_responses_completion(
     if not isinstance(data, dict):
         raise ValueError("Responses endpoint returned a non-object JSON response")
     return parse_responses_response(data)
+
+
+def gemini_generate_content_url(base_url: str, model: str) -> str:
+    value = base_url.strip().rstrip("/")
+    if not value:
+        raise ValueError("API base URL cannot be empty")
+    if value.endswith(":generateContent"):
+        return value
+    return value + f"/models/{model}:generateContent"
+
+
+def _gemini_parts(user_content: str | list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if isinstance(user_content, str):
+        return [{"text": user_content}]
+    parts: list[dict[str, Any]] = []
+    for item in user_content:
+        if isinstance(item, str):
+            parts.append({"text": item})
+        elif not isinstance(item, dict):
+            continue
+        if item.get("type") == "text":
+            parts.append({"text": item.get("text", "")})
+        elif item.get("type") == "image_url":
+            image_url = item.get("image_url")
+            if isinstance(image_url, dict):
+                image_url = image_url.get("url")
+            if not isinstance(image_url, str):
+                continue
+            if image_url.startswith("data:"):
+                try:
+                    header, payload = image_url.split(",", 1)
+                    mime = header[5:].split(";")[0] or "image/jpeg"
+                except ValueError as exc:
+                    raise ValueError("Invalid Gemini inline image data URL") from exc
+                parts.append({"inlineData": {"mimeType": mime, "data": payload}})
+            else:
+                parts.append({"fileData": {"mimeType": "image/jpeg", "fileUri": image_url}})
+    return parts
+
+
+def build_gemini_payload(
+    profile: APIProfile,
+    system_prompt: str,
+    user_content: str | list[dict[str, Any]],
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "contents": [{"role": "user", "parts": _gemini_parts(user_content)}],
+        "generationConfig": {"maxOutputTokens": profile.max_tokens},
+    }
+    if system_prompt:
+        payload["systemInstruction"] = {"parts": [{"text": system_prompt}]}
+    return payload
+
+
+def parse_gemini_response(data: dict[str, Any]) -> CompletionResult:
+    candidates = data.get("candidates")
+    if not isinstance(candidates, list) or not candidates:
+        feedback = data.get("promptFeedback") or {}
+        reason = feedback.get("blockReason") if isinstance(feedback, dict) else None
+        if reason:
+            raise ValueError(f"Gemini API blocked the request: {reason}")
+        raise ValueError("Gemini API returned no candidates")
+    chunks: list[str] = []
+    finish_reason = None
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        finish_reason = candidate.get("finishReason") or finish_reason
+        content = candidate.get("content") or {}
+        if not isinstance(content, dict):
+            continue
+        for part in content.get("parts") or []:
+            if isinstance(part, dict) and isinstance(part.get("text"), str):
+                chunks.append(part["text"])
+    if not chunks:
+        raise ValueError("Gemini API response has no text")
+    usage = data.get("usageMetadata") if isinstance(data.get("usageMetadata"), dict) else {}
+    return CompletionResult("\n".join(chunks).strip(), finish_reason, usage, data)
+
+
+def request_gemini_native(
+    profile: APIProfile,
+    api_key: str,
+    system_prompt: str,
+    user_content: str | list[dict[str, Any]],
+    transport: Transport | None = None,
+) -> CompletionResult:
+    profile.validate()
+    if not profile.model.strip():
+        raise ValueError("API model cannot be empty")
+    payload = build_gemini_payload(profile, system_prompt, user_content)
+    headers = {
+        "x-goog-api-key": api_key,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    status, response_body = (transport or _default_transport)(
+        gemini_generate_content_url(profile.base_url, profile.model),
+        headers,
+        body,
+        profile.timeout_seconds,
+    )
+    text = response_body.decode("utf-8", errors="replace")
+    if status < 200 or status >= 300:
+        raise RuntimeError(f"HTTP {status}: {text[:4000]}")
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Gemini endpoint returned invalid JSON: {text[:1000]}") from exc
+    if not isinstance(data, dict):
+        raise ValueError("Gemini endpoint returned a non-object JSON response")
+    return parse_gemini_response(data)
+
 
 
 def request_chat_completion(
