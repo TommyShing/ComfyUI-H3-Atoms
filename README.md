@@ -20,11 +20,20 @@ This package targets the ComfyUI new node API (`comfy_api.latest`) and the insta
 ## Workflow
 
 ```text
-Reference Pack ──┐
-Settings Pack ───┤
-Rules Loader ────┤--> H3 LLM Prompt Process --> H3 Unified Encode --> positive + latent
-User Prompt ─────┤              |
-API Profile ─────┘              +--> final_prompt / output_msg
+Reference Pack ─────┬──────────────────────────────────────────────┐
+Settings Pack ──────┤                                              │
+Rules Loader ───────┤                                              │
+User Prompt ────────┼──> H3 LLM Prompt Process ──> final_prompt ───┤
+API Profile ────────┘                                              │
+clip ──────────────────────────────────────────────────────────────┤
+vae ───────────────────────────────────────────────────────────────┤
+audio_vae (Ref2VA) ────────────────────────────────────────────────┘
+                                                                   │
+                                                                   v
+                                                     H3 Unified Encode
+                                                                   │
+                                                                   v
+                                                         positive + latent
 ```
 
 Typical chain:
