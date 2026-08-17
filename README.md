@@ -58,6 +58,12 @@ Supported fields:
 - `send_ref_audio=true` and `direct_video=true` produce clear errors rather than silently dropping media.
 - Gemini Native and Google Files API are not implemented here.
 
+## Requirements
+
+- A ComfyUI build that includes the official MiniMax H3 extras (`comfy_extras.nodes_minimax_h3`).
+- ComfyUI's bundled Python environment provides `torch`, `Pillow`, and `av`.
+- No additional pip packages are required for normal use. See `requirements.txt`.
+
 ## Installation
 
 Copy this directory into `ComfyUI/custom_nodes/` and restart ComfyUI:

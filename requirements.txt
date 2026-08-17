@@ -1,0 +1,3 @@
+# Runtime dependencies are provided by the ComfyUI bundled Python environment.
+# This extension imports comfy_api.latest, comfy_extras.nodes_minimax_h3, torch, PIL, and av.
+# No additional pip packages are required for normal use.
