@@ -167,6 +167,16 @@ class APIClientTests(unittest.TestCase):
         )
         self.assertTrue(parsed.truncated)
 
+    def test_gemini_reasoning_maps_to_thinking_level(self):
+        profile = APIProfile(
+            name="test",
+            base_url="https://example.com/v1",
+            model="glm",
+            reasoning_effort="high",
+        )
+        payload = build_gemini_payload(profile, "sys", "user")
+        self.assertEqual(payload["generationConfig"]["thinkingConfig"]["thinkingLevel"], "HIGH")
+
     def test_gemini_transport_injection(self):
         def transport(url, headers, body, timeout):
             self.assertEqual(url, "https://example.com/v1/models/glm:generateContent")

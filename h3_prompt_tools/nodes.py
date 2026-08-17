@@ -333,7 +333,7 @@ class H3APIProfile(io.ComfyNode):
                     "api_format",
                     options=list(API_FORMATS),
                     default="completions",
-                    tooltip="completions uses chat/completions; responses uses the Responses API; gemini_native supports text/inline images, with Files API audio/video pending.",
+                    tooltip="completions uses chat/completions; responses uses the Responses API; gemini_native supports text, inline images, and Files API audio/video.",
                 ),
                 io.Combo.Input(
                     "token_parameter",

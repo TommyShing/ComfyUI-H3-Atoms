@@ -245,6 +245,11 @@ def build_gemini_payload(
         "contents": [{"role": "user", "parts": _gemini_parts(user_content) if parts is None else parts}],
         "generationConfig": {"maxOutputTokens": profile.max_tokens},
     }
+    if profile.reasoning_effort != "disabled":
+        levels = {"none": "NONE", "minimal": "NONE", "low": "LOW", "medium": "MEDIUM", "high": "HIGH"}
+        payload["generationConfig"]["thinkingConfig"] = {
+            "thinkingLevel": levels.get(profile.reasoning_effort, "MEDIUM")
+        }
     if system_prompt:
         payload["systemInstruction"] = {"parts": [{"text": system_prompt}]}
     return payload

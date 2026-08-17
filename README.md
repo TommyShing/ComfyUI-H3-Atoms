@@ -49,10 +49,10 @@ $env:H3_API_KEY = "your-key"
 
 Supported fields:
 
-- `api_format`: `completions` (Chat Completions), `responses` (Responses API), or `gemini_native` (planned Google-native adapter)
+- `api_format`: `completions` (Chat Completions), `responses` (Responses API), or `gemini_native` (Google-native adapter)
 - `base_url`, `model`
 - `max_completion_tokens`, `max_tokens`, or `max_output_tokens`
-- optional `reasoning_effort`
+- optional `reasoning_effort`: Chat Completions top-level, Responses `reasoning.effort`, Gemini `generationConfig.thinkingConfig.thinkingLevel`
 - timeout, JPEG quality, and sampled video frame count
 - per-category media sending flags
 - `direct_video` and `send_ref_audio` are only meaningful for the Gemini Native Files API path

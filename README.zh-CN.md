@@ -49,10 +49,10 @@ $env:H3_API_KEY = "your-key"
 
 支持：
 
-- `api_format`：`completions`（Chat Completions）、`responses`（Responses API）、`gemini_native`（规划中的 Google 原生 adapter）
+- `api_format`：`completions`（Chat Completions）、`responses`（Responses API）、`gemini_native`（Google 原生 adapter）
 - `base_url`、`model`
 - `max_completion_tokens`、`max_tokens`、`max_output_tokens`
-- 可选 `reasoning_effort`
+- 可选 `reasoning_effort`：Chat Completions 用顶层字段，Responses 用 `reasoning.effort`，Gemini 用 `generationConfig.thinkingConfig.thinkingLevel`
 - 超时、JPEG 质量和视频抽帧数量
 - 按媒体类型开关发送
 - `direct_video` 和 `send_ref_audio` 只在 Gemini Native Files API 路径中有意义
