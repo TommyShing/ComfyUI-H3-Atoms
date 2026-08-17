@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from h3_prompt_tools.api_client import (
     build_gemini_payload,
@@ -173,6 +174,27 @@ class APIClientTests(unittest.TestCase):
 
         result = request_gemini_native(self.profile, "key", "sys", "user", transport=transport)
         self.assertEqual(result.content, "final")
+
+    def test_gemini_media_upload_parts_are_included(self):
+        def transport(url, headers, body, timeout):
+            request = json.loads(body)
+            self.assertEqual(request["contents"][0]["parts"][-1]["fileData"]["fileUri"], "files/audio-1")
+            return 200, json.dumps({"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "final"}]}}]}).encode()
+
+        with mock.patch(
+            "h3_prompt_tools.api_client.upload_audio_to_gemini",
+            return_value={"fileData": {"mimeType": "audio/wav", "fileUri": "files/audio-1"}},
+        ) as upload:
+            result = request_gemini_native(
+                self.profile,
+                "key",
+                "sys",
+                "user",
+                gemini_media=[{"kind": "audio", "value": object()}],
+                transport=transport,
+            )
+        self.assertEqual(result.content, "final")
+        upload.assert_called_once()
 
     def test_transport_injection(self):
         def transport(url, headers, body, timeout):

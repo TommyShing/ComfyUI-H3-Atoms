@@ -168,6 +168,8 @@ def build_user_content(
             for item in items:
                 if item["kind"] != "video":
                     continue
+                if profile.direct_video and profile.api_format == "gemini_native":
+                    continue
                 parts.extend(_video_parts_for_item(item, user_prompt, profile))
         return parts
 

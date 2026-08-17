@@ -10,7 +10,7 @@ from comfy_api.latest import ComfyExtension, io
 
 from .api_client import request_chat_completion, request_gemini_native, request_responses_completion
 from .profiles import APIProfile, API_FORMATS, REASONING_EFFORTS, TOKEN_PARAMETERS
-from .prompt_builder import build_system_prompt, build_user_content
+from .prompt_builder import build_system_prompt, build_user_content, iter_reference_items
 from .rules import RuleBundle
 from .settings import (
     MAX_DURATION_SECONDS,
@@ -452,9 +452,19 @@ class H3LLMPromptProcess(io.ComfyNode):
             if profile.api_format == "responses":
                 result = request_responses_completion(profile, api_key, system_prompt, user_content)
             elif profile.api_format == "gemini_native":
-                if profile.send_ref_audio or profile.direct_video:
-                    raise ValueError("Gemini Native audio/video via Files API is not implemented yet; use text/images inline")
-                result = request_gemini_native(profile, api_key, system_prompt, user_content)
+                gemini_media: list[dict[str, Any]] = []
+                for item in iter_reference_items(pack):
+                    if item["kind"] == "audio" and profile.send_ref_audio:
+                        gemini_media.append({"kind": "audio", "value": item["value"]})
+                    elif item["kind"] == "video" and profile.send_ref_videos and profile.direct_video:
+                        gemini_media.append({"kind": "video", "value": item["value"]})
+                result = request_gemini_native(
+                    profile,
+                    api_key,
+                    system_prompt,
+                    user_content,
+                    gemini_media=gemini_media,
+                )
             else:
                 result = request_chat_completion(profile, api_key, system_prompt, user_content)
             if result.truncated:

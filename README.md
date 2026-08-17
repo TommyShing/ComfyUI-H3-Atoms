@@ -62,7 +62,7 @@ Supported fields:
 - `completions` and `responses` send images and sampled video frames as JPEG data URLs.
 - Raw video and audio upload are not implemented for `completions` or `responses`.
 - `send_ref_audio=true` and `direct_video=true` require `api_format=gemini_native` and the Gemini Files API adapter.
-- Gemini Native supports text and inline images; audio/video via the Files API is not implemented yet.
+- Gemini Native supports text, inline images, and Files API upload for `AUDIO` and `IMAGE`-frame video.
 
 ## Requirements
 

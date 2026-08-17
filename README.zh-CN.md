@@ -62,7 +62,7 @@ $env:H3_API_KEY = "your-key"
 - `completions` 和 `responses` 只把图片和视频抽样帧以 JPEG data URL 发送。
 - `completions` 和 `responses` 暂不支持原始视频/音频上传。
 - `send_ref_audio=true` 和 `direct_video=true` 需要 `api_format=gemini_native` 和 Gemini Files API adapter。
-- Gemini Native 已支持文本和内联图片；音频/视频通过 Files API 上传尚未实现。
+- Gemini Native 已支持文本、内联图片，以及通过 Files API 上传 `AUDIO` 和 `IMAGE` 视频帧批次。
 
 ## Requirements
 

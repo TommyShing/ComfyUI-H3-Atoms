@@ -6,6 +6,7 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any, Callable
 
+from .gemini import upload_audio_to_gemini, upload_video_to_gemini
 from .profiles import APIProfile
 
 
@@ -237,9 +238,10 @@ def build_gemini_payload(
     profile: APIProfile,
     system_prompt: str,
     user_content: str | list[dict[str, Any]],
+    parts: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
-        "contents": [{"role": "user", "parts": _gemini_parts(user_content)}],
+        "contents": [{"role": "user", "parts": _gemini_parts(user_content) if parts is None else parts}],
         "generationConfig": {"maxOutputTokens": profile.max_tokens},
     }
     if system_prompt:
@@ -278,12 +280,22 @@ def request_gemini_native(
     api_key: str,
     system_prompt: str,
     user_content: str | list[dict[str, Any]],
+    gemini_media: list[dict[str, Any]] | None = None,
     transport: Transport | None = None,
 ) -> CompletionResult:
     profile.validate()
     if not profile.model.strip():
         raise ValueError("API model cannot be empty")
-    payload = build_gemini_payload(profile, system_prompt, user_content)
+    gemini_parts = _gemini_parts(user_content)
+    for media in gemini_media or []:
+        kind = media.get("kind")
+        if kind == "audio":
+            gemini_parts.append(upload_audio_to_gemini(api_key, media["value"], timeout=profile.timeout_seconds))
+        elif kind == "video":
+            gemini_parts.append(upload_video_to_gemini(api_key, media["value"], timeout=profile.timeout_seconds))
+        else:
+            raise ValueError(f"Unsupported Gemini media kind: {kind!r}")
+    payload = build_gemini_payload(profile, system_prompt, user_content, parts=gemini_parts)
     headers = {
         "x-goog-api-key": api_key,
         "Content-Type": "application/json",
